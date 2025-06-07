@@ -158,4 +158,20 @@ contract VirtualRewardsToken is ERC20, Ownable {
 
         return rewards;
     }
+
+    /**
+     * @notice Sets the amount of the rewards token to distribute per distribution period
+     * @param _rewardsPerDistributionPeriod The amount of rewards per distribution period
+     */
+    function setRewardsPerDistributionPeriod(uint256 _rewardsPerDistributionPeriod) public onlyAuthorizedOrOwner {
+        rewardsPerDistributionPeriod = _rewardsPerDistributionPeriod;
+    }
+
+    /**
+     * @notice Sets the reward token
+     * @param _rewardToken The reward token
+     */
+    function setRewardToken(address _rewardToken) public onlyAuthorizedOrOwner {
+        rewardToken = IERC20(_rewardToken);
+    }
 }
