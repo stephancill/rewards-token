@@ -15,8 +15,7 @@ contract VirtualRewardsToken is ERC20, Ownable {
     error NotAuthorized();
     error Paused();
 
-    mapping(address account => uint256 lastClaimedDistributionId)
-        public lastDistributionId;
+    mapping(address account => uint256 lastClaimedDistributionId) public lastDistributionId;
 
     uint256 public immutable createdTimestamp;
 
@@ -52,21 +51,13 @@ contract VirtualRewardsToken is ERC20, Ownable {
     }
 
     modifier onlyAuthorizedOrOwner() {
-        if (
-            msg.sender !=
-            virtualRewardsTokenFactory.globalConfig().authority() &&
-            msg.sender != owner()
-        ) {
+        if (msg.sender != virtualRewardsTokenFactory.globalConfig().authority() && msg.sender != owner()) {
             revert NotAuthorized();
         }
         _;
     }
 
-    function beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal {
+    function beforeTokenTransfer(address from, address to, uint256 amount) internal {
         if (isPaused) {
             revert Paused();
         }
@@ -83,19 +74,12 @@ contract VirtualRewardsToken is ERC20, Ownable {
         }
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public override returns (bool) {
+    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
         beforeTokenTransfer(from, to, amount);
         return super.transferFrom(from, to, amount);
     }
 
-    function transfer(
-        address to,
-        uint256 amount
-    ) public override returns (bool) {
+    function transfer(address to, uint256 amount) public override returns (bool) {
         beforeTokenTransfer(msg.sender, to, amount);
         return super.transfer(to, amount);
     }
@@ -137,11 +121,7 @@ contract VirtualRewardsToken is ERC20, Ownable {
 
         // Transfer fees to authority
         uint256 fees = calculateFees();
-        rewardToken.transferFrom(
-            owner(),
-            virtualRewardsTokenFactory.globalConfig().authority(),
-            fees
-        );
+        rewardToken.transferFrom(owner(), virtualRewardsTokenFactory.globalConfig().authority(), fees);
 
         isDistributing = true;
         isPaused = true;
@@ -161,10 +141,7 @@ contract VirtualRewardsToken is ERC20, Ownable {
     }
 
     function calculateFees() public view returns (uint256) {
-        return
-            (rewardsPerDistributionPeriod *
-                virtualRewardsTokenFactory.globalConfig().authorityFeeBps()) /
-            10000;
+        return (rewardsPerDistributionPeriod * virtualRewardsTokenFactory.globalConfig().authorityFeeBps()) / 10000;
     }
 
     /**
@@ -177,8 +154,7 @@ contract VirtualRewardsToken is ERC20, Ownable {
         uint256 distributedSupply = balanceOf(recipient);
         uint256 fees = calculateFees();
 
-        uint256 rewards = (distributedSupply *
-            (rewardsPerDistributionPeriod - fees)) / totalSupply;
+        uint256 rewards = (distributedSupply * (rewardsPerDistributionPeriod - fees)) / totalSupply;
 
         return rewards;
     }

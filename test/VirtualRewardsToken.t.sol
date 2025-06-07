@@ -28,28 +28,16 @@ contract VirtualRewardsTokenTest is Test {
         // Mock the factory
         vm.mockCall(
             mockRewardsTokenFactory,
-            abi.encodeWithSelector(
-                IVirtualRewardsTokenFactory.globalConfig.selector
-            ),
+            abi.encodeWithSelector(IVirtualRewardsTokenFactory.globalConfig.selector),
             abi.encode(mockGlobalConfig)
         );
 
         // Mock the global config
+        vm.mockCall(mockGlobalConfig, abi.encodeWithSelector(IGlobalConfig.authorityFeeBps.selector), abi.encode(100));
         vm.mockCall(
-            mockGlobalConfig,
-            abi.encodeWithSelector(IGlobalConfig.authorityFeeBps.selector),
-            abi.encode(100)
+            mockGlobalConfig, abi.encodeWithSelector(IGlobalConfig.authority.selector), abi.encode(address(this))
         );
-        vm.mockCall(
-            mockGlobalConfig,
-            abi.encodeWithSelector(IGlobalConfig.authority.selector),
-            abi.encode(address(this))
-        );
-        vm.mockCall(
-            mockRewardToken,
-            abi.encodeWithSelector(IERC20.transfer.selector),
-            abi.encode(true)
-        );
+        vm.mockCall(mockRewardToken, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
     }
 
     function test_constructor() public {
@@ -63,11 +51,7 @@ contract VirtualRewardsTokenTest is Test {
     function test_transferFromNoAllowance() public {
         vm.prank(mockAppCaller);
         vm.expectRevert();
-        rewardsToken.transferFrom(
-            address(mockOwner),
-            address(0x123),
-            1000 * 1e18
-        );
+        rewardsToken.transferFrom(address(mockOwner), address(0x123), 1000 * 1e18);
     }
 
     function test_transferFromOwnerWithAllowance() public {
@@ -109,19 +93,9 @@ contract VirtualRewardsTokenTest is Test {
 
         helper_startDistribution();
 
-        vm.mockCall(
-            mockRewardToken,
-            abi.encodeWithSelector(IERC20.transferFrom.selector, mockOwner),
-            abi.encode(true)
-        );
+        vm.mockCall(mockRewardToken, abi.encodeWithSelector(IERC20.transferFrom.selector, mockOwner), abi.encode(true));
         uint256 reward = rewardsToken.calculateReward(address(0x123));
-        vm.expectCall(
-            mockRewardToken,
-            abi.encodeCall(
-                IERC20.transferFrom,
-                (mockOwner, address(0x123), reward)
-            )
-        );
+        vm.expectCall(mockRewardToken, abi.encodeCall(IERC20.transferFrom, (mockOwner, address(0x123), reward)));
         rewardsToken.distributeReward(address(0x123));
         assertEq(rewardsToken.balanceOf(address(0x123)), 0);
 
@@ -150,8 +124,7 @@ contract VirtualRewardsTokenTest is Test {
         vm.stopPrank();
 
         // 0x789 is expected to receive half of the rewards minus fees
-        uint256 distributionAmount = rewardsToken
-            .rewardsPerDistributionPeriod();
+        uint256 distributionAmount = rewardsToken.rewardsPerDistributionPeriod();
         uint256 fees = (distributionAmount * 100) / 10000;
         uint256 reward = distributionAmount - fees;
         assertEq(rewardsToken.calculateReward(address(0x789)), reward / 2);
@@ -192,11 +165,7 @@ contract VirtualRewardsTokenTest is Test {
         helper_startDistribution();
 
         // Expect transferFrom to not be called
-        vm.expectCall(
-            mockRewardToken,
-            abi.encodeWithSelector(IERC20.transferFrom.selector, mockOwner),
-            0
-        );
+        vm.expectCall(mockRewardToken, abi.encodeWithSelector(IERC20.transferFrom.selector, mockOwner), 0);
         rewardsToken.distributeReward(address(0x123));
 
         // Existing tokens should also be burned
@@ -207,15 +176,9 @@ contract VirtualRewardsTokenTest is Test {
 
     function helper_startDistribution() public {
         vm.mockCall(
-            mockRewardToken,
-            abi.encodeWithSelector(IERC20.balanceOf.selector, mockOwner),
-            abi.encode(100000 * 1e18)
+            mockRewardToken, abi.encodeWithSelector(IERC20.balanceOf.selector, mockOwner), abi.encode(100000 * 1e18)
         );
-        vm.mockCall(
-            mockRewardToken,
-            abi.encodeWithSelector(IERC20.transferFrom.selector, mockOwner),
-            abi.encode(true)
-        );
+        vm.mockCall(mockRewardToken, abi.encodeWithSelector(IERC20.transferFrom.selector, mockOwner), abi.encode(true));
         rewardsToken.startDistribution();
     }
 }

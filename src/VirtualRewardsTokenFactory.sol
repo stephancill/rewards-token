@@ -10,10 +10,7 @@ import {IVirtualRewardsTokenFactory} from "./interfaces/IVirtualRewardsTokenFact
 contract VirtualRewardsTokenFactory is IVirtualRewardsTokenFactory, Ownable {
     string public constant VERSION = "1.0.0";
 
-    event VirtualRewardsTokenCreated(
-        address indexed token,
-        address indexed owner
-    );
+    event VirtualRewardsTokenCreated(address indexed token, address indexed owner);
 
     IGlobalConfig public globalConfig;
 
@@ -28,14 +25,8 @@ contract VirtualRewardsTokenFactory is IVirtualRewardsTokenFactory, Ownable {
         address rewardToken,
         uint256 rewardsPerDistributionPeriod
     ) public returns (VirtualRewardsToken) {
-        VirtualRewardsToken token = new VirtualRewardsToken(
-            name,
-            symbol,
-            owner,
-            rewardToken,
-            rewardsPerDistributionPeriod,
-            this
-        );
+        VirtualRewardsToken token =
+            new VirtualRewardsToken(name, symbol, owner, rewardToken, rewardsPerDistributionPeriod, this);
         emit VirtualRewardsTokenCreated(address(token), owner);
         return token;
     }

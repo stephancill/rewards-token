@@ -11,10 +11,7 @@ contract GlobalConfig is IGlobalConfig, Ownable {
     event AuthorityFeeBpsUpdated(uint256 newAuthorityFeeBps);
     event AuthorityUpdated(address newAuthority);
 
-    constructor(
-        uint256 _authorityFeeBps,
-        address _authority
-    ) Ownable(msg.sender) {
+    constructor(uint256 _authorityFeeBps, address _authority) Ownable(msg.sender) {
         authorityFeeBps = _authorityFeeBps;
         authority = _authority;
     }
