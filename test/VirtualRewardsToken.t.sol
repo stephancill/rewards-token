@@ -172,6 +172,15 @@ contract VirtualRewardsTokenTest is Test {
         assertEq(rewardsToken.balanceOf(address(0x123)), 0);
     }
 
+    function test_feeCalculation() public {
+        // With rewardsPerDistributionPeriod set to 1000 * 1e18 in setUp
+        uint256 expectedFee = (1000 * 1e18 * 100) / 10000; // 1% of 1000 * 1e18
+        assertEq(rewardsToken.calculateFees(), expectedFee);
+
+        // Verify the fee is exactly 1% of the rewards pool
+        assertEq(rewardsToken.calculateFees(), 10 * 1e18); // 1% of 1000 * 1e18 = 10 * 1e18
+    }
+
     // -- Helper functions --
 
     function helper_startDistribution() public {
