@@ -2,16 +2,16 @@
 pragma solidity ^0.8.20;
 
 import {IERC20, ERC20} from "@openzeppelin-contracts-5.3.0/token/ERC20/ERC20.sol";
-import {ERC20Pausable} from "@openzeppelin-contracts-5.3.0/token/ERC20/extensions/ERC20Pausable.sol";
 import {Ownable} from "@openzeppelin-contracts-5.3.0/access/Ownable.sol";
 
 import {IRewardsTokenFactoryV1} from "./interfaces/IRewardsTokenFactoryV1.sol";
 
-contract RewardsTokenV1 is ERC20Pausable, Ownable {
-    error NoRewards();
+contract RewardsTokenV1 is ERC20, Ownable {
     error NotDistributing();
+    error AlreadyDistributing();
     error NotEnoughRewards();
     error NotAuthorized();
+    error Paused();
 
     mapping(address account => uint256 lastClaimedDistributionId)
         public lastDistributionId;
@@ -24,6 +24,7 @@ contract RewardsTokenV1 is ERC20Pausable, Ownable {
     uint256 public currentDistributionId;
 
     bool public isDistributing;
+    bool public isPaused;
 
     IRewardsTokenFactoryV1 public immutable rewardsTokenFactory;
 
@@ -59,29 +60,42 @@ contract RewardsTokenV1 is ERC20Pausable, Ownable {
         _;
     }
 
-    /**
-     * @notice Issues and
-     * @param from The address of the sender
-     * @param to The address of the recipient
-     * @param amount The amount of tokens to transfer
-     * @return True if the transfer was successful
-     */
+    function beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal {
+        if (isPaused) {
+            revert Paused();
+        }
+
+        // Burn the user's balance if they haven't claimed their rewards yet
+        // This should never happen if their rewards are distributed on time
+        if (lastDistributionId[to] < currentDistributionId) {
+            _burn(to, balanceOf(to));
+            lastDistributionId[to] = currentDistributionId;
+        }
+
+        if (from == owner()) {
+            _mint(from, amount);
+        }
+    }
+
     function transferFrom(
         address from,
         address to,
         uint256 amount
     ) public override returns (bool) {
-        // Burn the user's balance if they haven't claimed their rewards yet
-        // This should never happen if their rewards are distributed on time
-        if (lastDistributionId[to] < currentDistributionId) {
-            _burn(to, balanceOf(to));
-        }
-
-        if (from == owner()) {
-            _mint(to, amount);
-        }
-
+        beforeTokenTransfer(from, to, amount);
         return super.transferFrom(from, to, amount);
+    }
+
+    function transfer(
+        address to,
+        uint256 amount
+    ) public override returns (bool) {
+        beforeTokenTransfer(msg.sender, to, amount);
+        return super.transfer(to, amount);
     }
 
     /**
@@ -93,13 +107,16 @@ contract RewardsTokenV1 is ERC20Pausable, Ownable {
             revert NotDistributing();
         }
 
-        uint256 reward = calculateRewards(recipient);
-
-        if (reward == 0) {
-            revert NoRewards();
+        if (lastDistributionId[recipient] < currentDistributionId) {
+            _burn(recipient, balanceOf(recipient));
+            return;
         }
 
-        _burn(recipient, reward);
+        uint256 reward = calculateReward(recipient);
+
+        if (reward == 0) return;
+
+        _burn(recipient, balanceOf(recipient));
 
         rewardToken.transferFrom(owner(), recipient, reward);
     }
@@ -108,6 +125,10 @@ contract RewardsTokenV1 is ERC20Pausable, Ownable {
      * @notice Starts the distribution of rewards
      */
     function startDistribution() public onlyAuthorizedOrOwner {
+        if (isDistributing) {
+            revert AlreadyDistributing();
+        }
+
         if (rewardToken.balanceOf(owner()) < rewardsPerDistributionPeriod) {
             revert NotEnoughRewards();
         }
@@ -121,16 +142,20 @@ contract RewardsTokenV1 is ERC20Pausable, Ownable {
         );
 
         isDistributing = true;
-        currentDistributionId++;
-        _pause();
+        isPaused = true;
     }
 
     /**
      * @notice Stops the distribution of rewards
      */
     function stopDistribution() public onlyAuthorizedOrOwner {
+        if (!isDistributing) {
+            revert NotDistributing();
+        }
+
+        currentDistributionId++;
         isDistributing = false;
-        _unpause();
+        isPaused = false;
     }
 
     function calculateFees() public view returns (uint256) {
@@ -140,11 +165,11 @@ contract RewardsTokenV1 is ERC20Pausable, Ownable {
     }
 
     /**
-     * @notice Calculates the amount of rewards to distribute to a recipient in the current distribution period
+     * @notice Calculates the amount of reward tokens to distribute to a recipient in the current distribution period
      * @param recipient The recipient of the rewards
-     * @return The amount of rewards to distribute
+     * @return The amount of reward tokens to distribute
      */
-    function calculateRewards(address recipient) public view returns (uint256) {
+    function calculateReward(address recipient) public view returns (uint256) {
         // Rewards are calculated based on percentage of the total supply
         // that has been distributed
 

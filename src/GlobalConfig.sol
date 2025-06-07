@@ -2,8 +2,9 @@
 pragma solidity ^0.8.20;
 
 import {Ownable} from "@openzeppelin-contracts-5.3.0/access/Ownable.sol";
+import {IGlobalConfig} from "./interfaces/IGlobalConfig.sol";
 
-contract GlobalConfig is Ownable {
+contract GlobalConfig is IGlobalConfig, Ownable {
     uint256 public authorityFeeBps;
     address public authority;
 
