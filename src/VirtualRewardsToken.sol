@@ -4,9 +4,11 @@ pragma solidity ^0.8.20;
 import {IERC20, ERC20} from "@openzeppelin-contracts-5.3.0/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin-contracts-5.3.0/access/Ownable.sol";
 
-import {IRewardsTokenFactoryV1} from "./interfaces/IRewardsTokenFactoryV1.sol";
+import {IVirtualRewardsTokenFactory} from "./interfaces/IVirtualRewardsTokenFactory.sol";
 
-contract RewardsTokenV1 is ERC20, Ownable {
+contract VirtualRewardsToken is ERC20, Ownable {
+    string public constant VERSION = "1.0.0";
+
     error NotDistributing();
     error AlreadyDistributing();
     error NotEnoughRewards();
@@ -22,11 +24,10 @@ contract RewardsTokenV1 is ERC20, Ownable {
     uint256 public rewardsPerDistributionPeriod;
 
     uint256 public currentDistributionId;
-
     bool public isDistributing;
     bool public isPaused;
 
-    IRewardsTokenFactoryV1 public immutable rewardsTokenFactory;
+    IVirtualRewardsTokenFactory public immutable virtualRewardsTokenFactory;
 
     /**
      * @param _name The name of the token
@@ -34,7 +35,7 @@ contract RewardsTokenV1 is ERC20, Ownable {
      * @param _owner The owner of the token
      * @param _rewardToken The reward token
      * @param _rewardsPerDistributionPeriod The amount of rewards per distribution period
-     * @param _rewardsTokenFactory The rewards token factory
+     * @param _virtualRewardsTokenFactory The virtual rewards token factory
      */
     constructor(
         string memory _name,
@@ -42,17 +43,18 @@ contract RewardsTokenV1 is ERC20, Ownable {
         address _owner,
         address _rewardToken,
         uint256 _rewardsPerDistributionPeriod,
-        IRewardsTokenFactoryV1 _rewardsTokenFactory
+        IVirtualRewardsTokenFactory _virtualRewardsTokenFactory
     ) ERC20(_name, _symbol) Ownable(_owner) {
         createdTimestamp = block.timestamp;
         rewardToken = IERC20(_rewardToken);
         rewardsPerDistributionPeriod = _rewardsPerDistributionPeriod;
-        rewardsTokenFactory = _rewardsTokenFactory;
+        virtualRewardsTokenFactory = _virtualRewardsTokenFactory;
     }
 
     modifier onlyAuthorizedOrOwner() {
         if (
-            msg.sender != rewardsTokenFactory.globalConfig().authority() &&
+            msg.sender !=
+            virtualRewardsTokenFactory.globalConfig().authority() &&
             msg.sender != owner()
         ) {
             revert NotAuthorized();
@@ -137,7 +139,7 @@ contract RewardsTokenV1 is ERC20, Ownable {
         uint256 fees = calculateFees();
         rewardToken.transferFrom(
             owner(),
-            rewardsTokenFactory.globalConfig().authority(),
+            virtualRewardsTokenFactory.globalConfig().authority(),
             fees
         );
 
@@ -161,7 +163,8 @@ contract RewardsTokenV1 is ERC20, Ownable {
     function calculateFees() public view returns (uint256) {
         return
             (rewardsPerDistributionPeriod *
-                rewardsTokenFactory.globalConfig().authorityFeeBps()) / 10000;
+                virtualRewardsTokenFactory.globalConfig().authorityFeeBps()) /
+            10000;
     }
 
     /**
@@ -170,9 +173,6 @@ contract RewardsTokenV1 is ERC20, Ownable {
      * @return The amount of reward tokens to distribute
      */
     function calculateReward(address recipient) public view returns (uint256) {
-        // Rewards are calculated based on percentage of the total supply
-        // that has been distributed
-
         uint256 totalSupply = totalSupply();
         uint256 distributedSupply = balanceOf(recipient);
         uint256 fees = calculateFees();

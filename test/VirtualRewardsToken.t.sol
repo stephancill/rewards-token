@@ -3,12 +3,12 @@ pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin-contracts-5.3.0/token/ERC20/ERC20.sol";
-import {RewardsTokenV1} from "../src/RewardsTokenV1.sol";
-import {IRewardsTokenFactoryV1} from "../src/interfaces/IRewardsTokenFactoryV1.sol";
+import {VirtualRewardsToken} from "../src/VirtualRewardsToken.sol";
+import {IVirtualRewardsTokenFactory} from "../src/interfaces/IVirtualRewardsTokenFactory.sol";
 import {IGlobalConfig} from "../src/interfaces/IGlobalConfig.sol";
 
-contract RewardsTokenV1Test is Test {
-    RewardsTokenV1 public rewardsToken;
+contract VirtualRewardsTokenTest is Test {
+    VirtualRewardsToken public rewardsToken;
     address mockRewardToken = address(0x1);
     address mockRewardsTokenFactory = address(0x2);
     address mockGlobalConfig = address(0x3);
@@ -16,20 +16,20 @@ contract RewardsTokenV1Test is Test {
     address mockAppCaller = address(0x5);
 
     function setUp() public {
-        rewardsToken = new RewardsTokenV1(
+        rewardsToken = new VirtualRewardsToken(
             "Test Token",
             "TEST",
             mockOwner,
             mockRewardToken,
             1000 * 1e18,
-            IRewardsTokenFactoryV1(mockRewardsTokenFactory)
+            IVirtualRewardsTokenFactory(mockRewardsTokenFactory)
         );
 
         // Mock the factory
         vm.mockCall(
             mockRewardsTokenFactory,
             abi.encodeWithSelector(
-                IRewardsTokenFactoryV1.globalConfig.selector
+                IVirtualRewardsTokenFactory.globalConfig.selector
             ),
             abi.encode(mockGlobalConfig)
         );
