@@ -40,7 +40,7 @@ contract VirtualRewardsTokenTest is Test {
         vm.mockCall(mockRewardToken, abi.encodeWithSelector(IERC20.transfer.selector), abi.encode(true));
     }
 
-    function test_constructor() public {
+    function test_constructor() public view {
         assertEq(rewardsToken.name(), "Test Token");
         assertEq(rewardsToken.symbol(), "TEST");
         assertEq(rewardsToken.owner(), mockOwner);
@@ -172,7 +172,7 @@ contract VirtualRewardsTokenTest is Test {
         assertEq(rewardsToken.balanceOf(address(0x123)), 0);
     }
 
-    function test_feeCalculation() public {
+    function test_feeCalculation() public view {
         // With rewardsPerDistributionPeriod set to 1000 * 1e18 in setUp
         uint256 expectedFee = (1000 * 1e18 * 100) / 10000; // 1% of 1000 * 1e18
         assertEq(rewardsToken.calculateFees(), expectedFee);

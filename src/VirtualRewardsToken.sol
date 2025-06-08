@@ -48,6 +48,10 @@ contract VirtualRewardsToken is ERC20, Ownable {
         rewardToken = IERC20(_rewardToken);
         rewardsPerDistributionPeriod = _rewardsPerDistributionPeriod;
         virtualRewardsTokenFactory = _virtualRewardsTokenFactory;
+
+        // Distribute some supply to the owner to satisfy balance checks
+        // 1_000_000 would be the largest amount distributed in a single transfer
+        _mint(owner(), 1_000_000 * 1e18);
     }
 
     modifier onlyAuthorizedOrOwner() {
@@ -82,6 +86,10 @@ contract VirtualRewardsToken is ERC20, Ownable {
     function transfer(address to, uint256 amount) public override returns (bool) {
         beforeTokenTransfer(msg.sender, to, amount);
         return super.transfer(to, amount);
+    }
+
+    function totalDistributedSupply() public view returns (uint256) {
+        return totalSupply() - balanceOf(owner());
     }
 
     /**
@@ -150,11 +158,11 @@ contract VirtualRewardsToken is ERC20, Ownable {
      * @return The amount of reward tokens to distribute
      */
     function calculateReward(address recipient) public view returns (uint256) {
-        uint256 totalSupply = totalSupply();
-        uint256 distributedSupply = balanceOf(recipient);
+        uint256 distributedSupply = totalSupply() - balanceOf(owner());
+        uint256 recipientBalance = balanceOf(recipient);
         uint256 fees = calculateFees();
 
-        uint256 rewards = (distributedSupply * (rewardsPerDistributionPeriod - fees)) / totalSupply;
+        uint256 rewards = (recipientBalance * (rewardsPerDistributionPeriod - fees)) / distributedSupply;
 
         return rewards;
     }

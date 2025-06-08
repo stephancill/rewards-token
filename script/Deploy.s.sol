@@ -10,7 +10,7 @@ contract DeployScript is Script {
     uint256 public authorityFeeBps = 100; // 1%
     address public rewardToken = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913; // USDC
     address public globalConfigAddress = 0x97F570C867d715b90b146C5165e9907221e33c44;
-    address public virtualRewardsTokenFactoryAddress = 0xD3C51514A6815164c37199864d9549bA6562141c;
+    address public virtualRewardsTokenFactoryAddress;
 
     function setUp() public {}
 
